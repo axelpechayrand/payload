@@ -1,8 +1,8 @@
-const jeilbrekBtn = document.getElementById('jeilbrek'); 
-const UAElement = document.getElementById("UA");
-
-// choose one of kernel exploits
+// This script runs before main.js, so exploitChain is defined when main.js loads.
 var exploitChain = localStorage.getItem("exploitChain") || "lapse";
+
+const jeilbrekBtn = document.getElementById('jeilbrek');
+const UAElement = document.getElementById("UA");
 const netctrlRadio = document.getElementById("netctrl-exploit");
 const lapseRadio = document.getElementById("lapse-exploit");
 const kexForm = document.getElementById('kernel-options');
@@ -12,10 +12,17 @@ UAElement.innerText += " " + navigator.userAgent;
 
 let selectedVersion = null;
 
+// --- Kernel exploit selection ---
+kexForm.addEventListener("change", function (event) {
+    localStorage.setItem("exploitChain", event.target.value);
+    exploitChain = event.target.value;
+    console.log('Exploit chain changed to:', exploitChain);
+});
+
 // --- Version button handling ---
 document.querySelectorAll('.jb-btn').forEach(btn => {
   btn.addEventListener('click', function (e) {
-    console.log('Button clicked:', this.dataset.version); // DEBUG
+    console.log('Button clicked:', this.dataset.version);
 
     // Highlight active button
     document.querySelectorAll('.jb-btn').forEach(b => b.classList.remove('active'));
@@ -23,24 +30,16 @@ document.querySelectorAll('.jb-btn').forEach(btn => {
 
     selectedVersion = this.dataset.version;
 
-    // Check if doJb is defined
+    // Check if doJb is defined (should be loaded from main.js)
     if (typeof doJb !== 'function') {
-      console.error('doJb is not defined! Check if main.js loaded correctly.');
+      alert('ERROR: doJb is not defined! main.js may have failed to load.');
+      console.error('doJb is not defined');
       return;
     }
 
-    // Do NOT disable the button – this was causing it to get stuck
-    // jeilbrekBtn.disabled = true;
-
+    // Do NOT disable the button – keeps it clickable
     doJb(selectedVersion);
   });
-});
-
-// --- Kernel exploit selection ---
-kexForm.addEventListener("change", function (event) {
-    localStorage.setItem("exploitChain", event.target.value);
-    exploitChain = event.target.value;
-    console.log('Exploit chain changed to:', exploitChain);
 });
 
 function cacheProgress(e) {
@@ -49,32 +48,27 @@ function cacheProgress(e) {
 }
 
 function displayCacheProgress() {
-    setTimeout(function () {
-        document.title = "\u2713";
-    }, 1000);
-    setTimeout(function () {
-        document.title = "CSSFontFace exploit";
-    }, 3000);
+    setTimeout(function () { document.title = "\u2713"; }, 1000);
+    setTimeout(function () { document.title = "CSSFontFace exploit"; }, 3000);
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    console.log('DOM fully loaded'); // DEBUG
+    console.log('DOM loaded – script.js ready');
 
-    // Cache handling
     if (window.applicationCache) {
         window.applicationCache.addEventListener("progress", cacheProgress, false);
         window.applicationCache.oncached = function (e) { displayCacheProgress(); };
         window.applicationCache.onupdateready = function (e) { displayCacheProgress(); };
     }
 
-    // choose prefered exploit chain
+    // Set radio buttons
     if (exploitChain == "netctrl") {
         netctrlRadio.checked = true;
     } else {
         lapseRadio.checked = true;
     }
 
-    // Set default selected version (11.02) if no button is active
+    // Default active button: 11.02
     if (!selectedVersion) {
         const defaultBtn = document.querySelector('.jb-btn[data-version="11.02"]') || document.querySelector('.jb-btn');
         if (defaultBtn) {
@@ -84,5 +78,5 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    console.log('Script.js loaded successfully. Buttons ready.');
+    console.log('script.js fully loaded. exploitChain =', exploitChain);
 });
