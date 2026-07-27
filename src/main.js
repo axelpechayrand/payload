@@ -1,35 +1,9 @@
-// Immediate console output
-(function() {
-    const consoleEl = document.getElementById('console');
-    if (consoleEl) {
-        consoleEl.append('[main.js] Loaded\n');
-    }
-})();
-
-window.onerror = function(msg, url, line, col, error) {
-    const consoleEl = document.getElementById('console');
-    if (consoleEl) {
-        consoleEl.append('[GLOBAL ERROR] ' + msg + '\n');
-        if (error && error.stack) consoleEl.append(error.stack + '\n');
-    }
-    console.error('[main.js] Global error:', msg, error);
-};
-
-function load_script(src) {
-    const consoleEl = document.getElementById('console');
+function load_script(src, remote = true, transfer = []) {
     return new Promise((resolve, reject) => {
-        if (consoleEl) consoleEl.append('Loading: ' + src + '\n');
         const script = document.createElement("script");
         script.src = src;
-        script.onload = function() {
-            if (consoleEl) consoleEl.append('Loaded: ' + src + '\n');
-            resolve();
-        };
-        script.onerror = function() {
-            const msg = 'Failed to load ' + src;
-            if (consoleEl) consoleEl.append('ERROR: ' + msg + '\n');
-            reject(new Error(msg));
-        };
+        script.onload = resolve;
+        script.onerror = reject;
         document.head.appendChild(script);
     });
 }
@@ -43,49 +17,27 @@ function setVersionFromString(versionStr) {
 }
 
 async function doJb(versionStr) {
-    const consoleEl = document.getElementById('console');
-    if (consoleEl) consoleEl.append('[doJb] Starting for ' + versionStr + '\n');
+    // Load misc.js FIRST – it defines 'version' and 'logger'
+    await load_script("src/misc.js");
 
     try {
-        // ------------------------------------------------------------------
-        // STEP 1: Load misc.js FIRST – it defines 'version' and 'logger'
-        // ------------------------------------------------------------------
-        await load_script("src/misc.js");
-
-        // Now 'version' and 'logger' are available
-        if (typeof version === 'undefined') {
-            throw new Error('version object still undefined after loading misc.js');
-        }
-        if (typeof logger === 'undefined') {
-            // Fallback logger if not defined (shouldn't happen)
-            logger = {
-                info: (msg) => { if (consoleEl) consoleEl.append('[INFO] ' + msg + '\n'); },
-                error: (msg) => { if (consoleEl) consoleEl.append('[ERROR] ' + msg + '\n'); }
-            };
-        }
-
-        // ------------------------------------------------------------------
-        // STEP 2: Set the version
-        // ------------------------------------------------------------------
+        // Set the version
         if (versionStr) {
             setVersionFromString(versionStr);
-            if (consoleEl) consoleEl.append('Version set to: ' + version.major + '.' + version.minor.toString(16).padStart(2,'0') + '\n');
         } else {
             version.init();
         }
 
-        // ------------------------------------------------------------------
-        // STEP 3: Load the rest of the scripts
-        // ------------------------------------------------------------------
         switch (version.console) {
             case 4:
                 await load_script("src/ps4/constants.js");
                 await load_script("src/ps4/userland.js");
                 break;
             case 5:
+                //TODO
                 break;
             default:
-                throw new Error('Unsupported console ' + version.console);
+                logger.info(`Unsupported console ${version.console}`);
         }
 
         logger.info("===USERLAND===");
@@ -109,21 +61,17 @@ async function doJb(versionStr) {
                 await load_script("src/ps4/kernel.js");
                 break;
             case 5:
+                //TODO
                 break;
             default:
-                throw new Error('Unsupported console ' + version.console);
+                logger.info(`Unsupported console ${version.console}`);
         }
 
         // exploitChain is defined from script.js
-        const chainScript = `src/${exploitChain}.js`;
-        if (consoleEl) consoleEl.append('Loading exploit chain: ' + chainScript + '\n');
-        await load_script(chainScript);
+        await load_script(`src/${exploitChain}.js`);
 
         logger.info(`===${exploitChain.toUpperCase()}===`);
 
-        // ------------------------------------------------------------------
-        // STEP 4: Execute the exploit
-        // ------------------------------------------------------------------
         try {
             if (exploitChain == "lapse") {
                 init();
@@ -132,11 +80,15 @@ async function doJb(versionStr) {
                 leak_kaddrs();
                 double_free_reqs1();
                 make_karw();
+
                 inc_karw_pipe_refcnt();
+
                 logger.info("Corrupted context cleanup started...");
+
                 remove_pktinfo_from_so(pktopts_twins[0]);
                 remove_rthdr_from_so(pktopts_twins[1]);
                 remove_rthdr_from_so(rthdr_twins[0]);
+
                 logger.info("Corrupted context cleanup completed !!");
             } else {
                 init();
@@ -144,12 +96,16 @@ async function doJb(versionStr) {
                 await ucred_triple_free();
                 leak_kqueue();
                 await make_karw();
+
                 inc_karw_pipe_refcnt();
+
                 logger.info("Corrupted context cleanup started...");
+
                 for (let i = 0; i < triplets.length; i++) {
                     remove_rthdr_from_so(triplets[i]);
                 }
                 remove_uaf_file();
+
                 logger.info("Corrupted context cleanup completed !!");
             }
         } finally {
@@ -166,7 +122,7 @@ async function doJb(versionStr) {
             const kpatches_u8 = new Uint8Array(kpatches_buf);
             kernel_patches(kpatches_u8);
 
-            // --- Load payload based on version ---
+            // --- Load payload based on selected version ---
             const major = version.major;
             const minor = version.minor.toString(16).padStart(2, '0');
             const payloadFile = `payload_${major}${minor}.bin`;
@@ -184,10 +140,8 @@ async function doJb(versionStr) {
         }
 
         logger.info("===END===");
-
     } catch (e) {
         logger.error(e.message);
         logger.error(e.stack);
-        throw e;
     }
 }
