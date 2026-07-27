@@ -47,10 +47,26 @@ async function doJb(versionStr) {
     if (consoleEl) consoleEl.append('[doJb] Starting for ' + versionStr + '\n');
 
     try {
-        // Load misc.js FIRST (defines version, logger, etc.)
+        // ------------------------------------------------------------------
+        // STEP 1: Load misc.js FIRST – it defines 'version' and 'logger'
+        // ------------------------------------------------------------------
         await load_script("src/misc.js");
 
-        // Now set version
+        // Now 'version' and 'logger' are available
+        if (typeof version === 'undefined') {
+            throw new Error('version object still undefined after loading misc.js');
+        }
+        if (typeof logger === 'undefined') {
+            // Fallback logger if not defined (shouldn't happen)
+            logger = {
+                info: (msg) => { if (consoleEl) consoleEl.append('[INFO] ' + msg + '\n'); },
+                error: (msg) => { if (consoleEl) consoleEl.append('[ERROR] ' + msg + '\n'); }
+            };
+        }
+
+        // ------------------------------------------------------------------
+        // STEP 2: Set the version
+        // ------------------------------------------------------------------
         if (versionStr) {
             setVersionFromString(versionStr);
             if (consoleEl) consoleEl.append('Version set to: ' + version.major + '.' + version.minor.toString(16).padStart(2,'0') + '\n');
@@ -58,14 +74,9 @@ async function doJb(versionStr) {
             version.init();
         }
 
-        // Now logger is available
-        if (typeof logger !== 'undefined') {
-            logger.info('misc.js loaded');
-        } else {
-            if (consoleEl) consoleEl.append('WARNING: logger not defined after misc.js\n');
-        }
-
-        // Load PS4 scripts
+        // ------------------------------------------------------------------
+        // STEP 3: Load the rest of the scripts
+        // ------------------------------------------------------------------
         switch (version.console) {
             case 4:
                 await load_script("src/ps4/constants.js");
@@ -74,16 +85,11 @@ async function doJb(versionStr) {
             case 5:
                 break;
             default:
-                const msg = 'Unsupported console ' + version.console;
-                if (typeof logger !== 'undefined') logger.info(msg);
-                else if (consoleEl) consoleEl.append(msg + '\n');
-                throw new Error(msg);
+                throw new Error('Unsupported console ' + version.console);
         }
 
-        if (typeof logger !== 'undefined') logger.info("===USERLAND===");
-        else if (consoleEl) consoleEl.append("===USERLAND===\n");
+        logger.info("===USERLAND===");
 
-        // Userland exploits
         let rw = undefined;
         if (arw.master === undefined) {
             rw = await init_rw();
@@ -93,14 +99,11 @@ async function doJb(versionStr) {
         init_rop();
         init_syscalls();
 
-        if (typeof logger !== 'undefined') logger.info("===END===");
-        else if (consoleEl) consoleEl.append("===END===\n");
+        logger.info("===END===");
 
-        // Load loader and workers
         await load_script("src/loader.js");
         await load_script("src/workers.js");
 
-        // Load kernel
         switch (version.console) {
             case 4:
                 await load_script("src/ps4/kernel.js");
@@ -108,21 +111,19 @@ async function doJb(versionStr) {
             case 5:
                 break;
             default:
-                const msg2 = 'Unsupported console ' + version.console;
-                if (typeof logger !== 'undefined') logger.info(msg2);
-                else if (consoleEl) consoleEl.append(msg2 + '\n');
-                throw new Error(msg2);
+                throw new Error('Unsupported console ' + version.console);
         }
 
-        // Load exploit chain (lapse or netctrl)
+        // exploitChain is defined from script.js
         const chainScript = `src/${exploitChain}.js`;
         if (consoleEl) consoleEl.append('Loading exploit chain: ' + chainScript + '\n');
         await load_script(chainScript);
 
-        if (typeof logger !== 'undefined') logger.info(`===${exploitChain.toUpperCase()}===`);
-        else if (consoleEl) consoleEl.append(`===${exploitChain.toUpperCase()}===\n`);
+        logger.info(`===${exploitChain.toUpperCase()}===`);
 
-        // Now execute the exploit
+        // ------------------------------------------------------------------
+        // STEP 4: Execute the exploit
+        // ------------------------------------------------------------------
         try {
             if (exploitChain == "lapse") {
                 init();
@@ -132,11 +133,11 @@ async function doJb(versionStr) {
                 double_free_reqs1();
                 make_karw();
                 inc_karw_pipe_refcnt();
-                if (typeof logger !== 'undefined') logger.info("Corrupted context cleanup started...");
+                logger.info("Corrupted context cleanup started...");
                 remove_pktinfo_from_so(pktopts_twins[0]);
                 remove_rthdr_from_so(pktopts_twins[1]);
                 remove_rthdr_from_so(rthdr_twins[0]);
-                if (typeof logger !== 'undefined') logger.info("Corrupted context cleanup completed !!");
+                logger.info("Corrupted context cleanup completed !!");
             } else {
                 init();
                 await setup();
@@ -144,12 +145,12 @@ async function doJb(versionStr) {
                 leak_kqueue();
                 await make_karw();
                 inc_karw_pipe_refcnt();
-                if (typeof logger !== 'undefined') logger.info("Corrupted context cleanup started...");
+                logger.info("Corrupted context cleanup started...");
                 for (let i = 0; i < triplets.length; i++) {
                     remove_rthdr_from_so(triplets[i]);
                 }
                 remove_uaf_file();
-                if (typeof logger !== 'undefined') logger.info("Corrupted context cleanup completed !!");
+                logger.info("Corrupted context cleanup completed !!");
             }
         } finally {
             cleanup();
@@ -174,8 +175,7 @@ async function doJb(versionStr) {
                 bin_rsp = await fetch(`src/${payloadFile}`);
                 if (!bin_rsp.ok) throw new Error('Payload not found');
             } catch {
-                if (typeof logger !== 'undefined') logger.info(`Payload ${payloadFile} not found, falling back to src/payload.bin`);
-                else if (consoleEl) consoleEl.append(`Payload ${payloadFile} not found, falling back to src/payload.bin\n`);
+                logger.info(`Payload ${payloadFile} not found, falling back to src/payload.bin`);
                 bin_rsp = await fetch("src/payload.bin");
             }
             const bin_buf = await bin_rsp.arrayBuffer();
@@ -183,21 +183,11 @@ async function doJb(versionStr) {
             load_bin(bin_u8);
         }
 
-        if (typeof logger !== 'undefined') logger.info("===END===");
-        else if (consoleEl) consoleEl.append("===END===\n");
+        logger.info("===END===");
 
     } catch (e) {
-        // Log error both to logger and console element
-        if (typeof logger !== 'undefined') {
-            logger.error(e.message);
-            logger.error(e.stack);
-        } else {
-            if (consoleEl) {
-                consoleEl.append('ERROR: ' + e.message + '\n');
-                if (e.stack) consoleEl.append('Stack: ' + e.stack + '\n');
-            }
-        }
-        // Re-throw so the button handler can catch it
+        logger.error(e.message);
+        logger.error(e.stack);
         throw e;
     }
 }
