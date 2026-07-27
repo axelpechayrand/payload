@@ -1,4 +1,4 @@
-// IMMEDIATE CONSOLE OUTPUT
+// Immediate console output
 (function() {
     const consoleEl = document.getElementById('console');
     if (consoleEl) {
@@ -6,7 +6,6 @@
     }
 })();
 
-// Define exploitChain early
 var exploitChain = localStorage.getItem("exploitChain") || "lapse";
 
 const UAElement = document.getElementById("UA");
@@ -16,8 +15,6 @@ const kexForm = document.getElementById('kernel-options');
 
 // Show user agent
 UAElement.innerText += " " + navigator.userAgent;
-
-// Also show in console
 const consoleEl = document.getElementById('console');
 if (consoleEl) {
     consoleEl.append('User Agent: ' + navigator.userAgent + '\n');
@@ -35,7 +32,11 @@ kexForm.addEventListener("change", function (event) {
 // --- Version button handling ---
 document.querySelectorAll('.jb-btn').forEach(btn => {
   btn.addEventListener('click', function (e) {
-    if (consoleEl) consoleEl.append('Button clicked: ' + this.dataset.version + '\n');
+    // Clear previous logs and show start message
+    if (consoleEl) {
+        consoleEl.textContent = ''; // Clear
+        consoleEl.append('=== Starting jailbreak for ' + this.dataset.version + ' ===\n');
+    }
 
     // Highlight
     document.querySelectorAll('.jb-btn').forEach(b => b.classList.remove('active'));
@@ -45,8 +46,9 @@ document.querySelectorAll('.jb-btn').forEach(btn => {
 
     // Check doJb
     if (typeof doJb !== 'function') {
-        if (consoleEl) consoleEl.append('ERROR: doJb is not defined! main.js may have failed.\n');
-        alert('ERROR: doJb is not defined! Check console.');
+        const msg = 'ERROR: doJb is not defined! main.js may have failed to load.';
+        if (consoleEl) consoleEl.append(msg + '\n');
+        alert(msg);
         return;
     }
 
@@ -55,15 +57,20 @@ document.querySelectorAll('.jb-btn').forEach(btn => {
     this.textContent = 'Running...';
     this.disabled = true;
 
+    // Call doJb and handle result
     doJb(selectedVersion)
       .then(() => {
           this.textContent = originalText;
           this.disabled = false;
-          if (consoleEl) consoleEl.append('Jailbreak completed for ' + selectedVersion + '\n');
+          if (consoleEl) consoleEl.append('=== Jailbreak completed successfully ===\n');
       })
       .catch((err) => {
           console.error(err);
-          if (consoleEl) consoleEl.append('ERROR: ' + err.message + '\n');
+          if (consoleEl) {
+              consoleEl.append('=== ERROR ===\n');
+              consoleEl.append('Message: ' + err.message + '\n');
+              if (err.stack) consoleEl.append('Stack: ' + err.stack + '\n');
+          }
           this.textContent = 'Failed';
           setTimeout(() => {
               this.textContent = originalText;
@@ -73,6 +80,7 @@ document.querySelectorAll('.jb-btn').forEach(btn => {
   });
 });
 
+// Cache handling (unchanged)
 function cacheProgress(e) {
     var Percent = (Math.round(e.loaded / e.total * 100));
     document.title = "Caching: " + Percent + "%";
@@ -92,12 +100,14 @@ document.addEventListener("DOMContentLoaded", function() {
         window.applicationCache.onupdateready = function (e) { displayCacheProgress(); };
     }
 
+    // Set radio buttons
     if (exploitChain == "netctrl") {
         netctrlRadio.checked = true;
     } else {
         lapseRadio.checked = true;
     }
 
+    // Default active button: 11.02
     if (!selectedVersion) {
         const defaultBtn = document.querySelector('.jb-btn[data-version="11.02"]') || document.querySelector('.jb-btn');
         if (defaultBtn) {
@@ -107,5 +117,5 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    if (consoleEl) consoleEl.append('script.js fully loaded.\n');
+    if (consoleEl) consoleEl.append('script.js fully loaded. Ready.\n');
 });
