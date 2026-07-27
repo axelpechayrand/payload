@@ -119,3 +119,36 @@ input[type="radio"]:checked {
 .mt-2{
     margin-top: 2rem;
 }
+
+/* ===== NEW: Version button grid ===== */
+#version-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 12px;   /* column gap 8px, row gap 12px */
+    margin: 15px 0;
+}
+
+/* Uniform button style for all version buttons */
+.jb-btn {
+    background: #01386A;
+    color: #ffffff;
+    border: none;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 3px;
+    min-width: 80px;
+}
+
+.jb-btn:hover {
+    background: #1d4ed8;
+}
+
+/* Highlight the active (selected) version button */
+.jb-btn.active {
+    background: #1d4ed8;
+    outline: 2px solid #ffffff;
+    box-shadow: 0 0 8px #1d4ed8;
+}
