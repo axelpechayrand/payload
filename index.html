@@ -8,7 +8,7 @@
 </head>
 <body>
 
-  <h1>Firmware Selection </h1>
+  <h1>Firmware Selection</h1>
   <h3 id="UA">Running on:</h3>
 
   <hr>
@@ -20,8 +20,13 @@
       <input type="radio" name="kernel" id="lapse-exploit" value="lapse">
       <label for="lapse-exploit">Lapse</label>
     </form>
-    <button id="jeilbrek">PS4 - 11.02</button>
-    
+
+    <div id="version-buttons">
+      <button class="jb-btn" data-version="9.00">PS4 - 9.00</button>
+      <button class="jb-btn" data-version="10.00">PS4 - 10.00</button>
+      <button class="jb-btn" data-version="11.02" id="jeilbrek">PS4 - 11.02</button>
+      <!-- Add more version buttons as needed -->
+    </div>
   </div>
 
   <div class="main-layout">
@@ -31,12 +36,16 @@
 
     <pre id="console">Ready. Awaiting execution...
   </pre>
+  </div>
 
-
+  <!-- auto-jailbreak checkbox -->
+  <div style="margin-top: 1rem;">
+    <label for="autoJbInput">Auto Jailbreak</label>
+    <input type="checkbox" id="autoJbInput">
+    <span id="autoJbLabel">Auto Jailbreak</span>
   </div>
 
   <script src="src/main.js"></script>
   <script src="includes/script.js"></script>
 </body>
-
 </html>
