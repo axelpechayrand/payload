@@ -10,17 +10,28 @@ const kexForm = document.getElementById('kernel-options');
 // Show user agent
 UAElement.innerText += " " + navigator.userAgent;
 
-let selectedVersion = null; // stores the version string of the last clicked button
+let selectedVersion = null;
 
 // --- Version button handling ---
 document.querySelectorAll('.jb-btn').forEach(btn => {
   btn.addEventListener('click', function (e) {
+    console.log('Button clicked:', this.dataset.version); // DEBUG
+
     // Highlight active button
     document.querySelectorAll('.jb-btn').forEach(b => b.classList.remove('active'));
     this.classList.add('active');
 
     selectedVersion = this.dataset.version;
-    jeilbrekBtn.disabled = true;
+
+    // Check if doJb is defined
+    if (typeof doJb !== 'function') {
+      console.error('doJb is not defined! Check if main.js loaded correctly.');
+      return;
+    }
+
+    // Do NOT disable the button – this was causing it to get stuck
+    // jeilbrekBtn.disabled = true;
+
     doJb(selectedVersion);
   });
 });
@@ -29,6 +40,7 @@ document.querySelectorAll('.jb-btn').forEach(btn => {
 kexForm.addEventListener("change", function (event) {
     localStorage.setItem("exploitChain", event.target.value);
     exploitChain = event.target.value;
+    console.log('Exploit chain changed to:', exploitChain);
 });
 
 function cacheProgress(e) {
@@ -46,6 +58,8 @@ function displayCacheProgress() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+    console.log('DOM fully loaded'); // DEBUG
+
     // Cache handling
     if (window.applicationCache) {
         window.applicationCache.addEventListener("progress", cacheProgress, false);
@@ -66,6 +80,9 @@ document.addEventListener("DOMContentLoaded", function() {
         if (defaultBtn) {
             defaultBtn.classList.add('active');
             selectedVersion = defaultBtn.dataset.version;
+            console.log('Default version set to:', selectedVersion);
         }
     }
+
+    console.log('Script.js loaded successfully. Buttons ready.');
 });
