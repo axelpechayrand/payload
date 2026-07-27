@@ -47,7 +47,10 @@ async function doJb(versionStr) {
     if (consoleEl) consoleEl.append('[doJb] Starting for ' + versionStr + '\n');
 
     try {
-        // Set version
+        // Load misc.js FIRST (defines version, logger, etc.)
+        await load_script("src/misc.js");
+
+        // Now set version
         if (versionStr) {
             setVersionFromString(versionStr);
             if (consoleEl) consoleEl.append('Version set to: ' + version.major + '.' + version.minor.toString(16).padStart(2,'0') + '\n');
@@ -55,10 +58,7 @@ async function doJb(versionStr) {
             version.init();
         }
 
-        // Load misc.js
-        await load_script("src/misc.js");
-
-        // Now logger should be available
+        // Now logger is available
         if (typeof logger !== 'undefined') {
             logger.info('misc.js loaded');
         } else {
