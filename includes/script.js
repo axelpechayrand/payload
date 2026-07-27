@@ -1,7 +1,6 @@
-// This script runs before main.js, so exploitChain is defined when main.js loads.
+// This script runs before main.js – define exploitChain here
 var exploitChain = localStorage.getItem("exploitChain") || "lapse";
 
-const jeilbrekBtn = document.getElementById('jeilbrek');
 const UAElement = document.getElementById("UA");
 const netctrlRadio = document.getElementById("netctrl-exploit");
 const lapseRadio = document.getElementById("lapse-exploit");
@@ -16,13 +15,13 @@ let selectedVersion = null;
 kexForm.addEventListener("change", function (event) {
     localStorage.setItem("exploitChain", event.target.value);
     exploitChain = event.target.value;
-    console.log('Exploit chain changed to:', exploitChain);
+    console.log('[script.js] Exploit chain changed to:', exploitChain);
 });
 
 // --- Version button handling ---
 document.querySelectorAll('.jb-btn').forEach(btn => {
   btn.addEventListener('click', function (e) {
-    console.log('Button clicked:', this.dataset.version);
+    console.log('[script.js] Button clicked:', this.dataset.version);
 
     // Highlight active button
     document.querySelectorAll('.jb-btn').forEach(b => b.classList.remove('active'));
@@ -30,18 +29,37 @@ document.querySelectorAll('.jb-btn').forEach(btn => {
 
     selectedVersion = this.dataset.version;
 
-    // Check if doJb is defined (should be loaded from main.js)
+    // Check if doJb is defined (should be from main.js)
     if (typeof doJb !== 'function') {
       alert('ERROR: doJb is not defined! main.js may have failed to load.');
-      console.error('doJb is not defined');
+      console.error('[script.js] doJb is not defined');
       return;
     }
 
-    // Do NOT disable the button – keeps it clickable
-    doJb(selectedVersion);
+    // Change button text to show it's working
+    const originalText = this.textContent;
+    this.textContent = 'Running...';
+    this.disabled = true;
+
+    // Call the jailbreak
+    doJb(selectedVersion)
+      .then(() => {
+        // Re-enable button when done
+        this.textContent = originalText;
+        this.disabled = false;
+      })
+      .catch((err) => {
+        console.error('[script.js] Jailbreak failed:', err);
+        this.textContent = 'Failed';
+        setTimeout(() => {
+          this.textContent = originalText;
+          this.disabled = false;
+        }, 3000);
+      });
   });
 });
 
+// Cache handling (unchanged)
 function cacheProgress(e) {
     var Percent = (Math.round(e.loaded / e.total * 100));
     document.title = "Caching: " + Percent + "%";
@@ -53,7 +71,7 @@ function displayCacheProgress() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    console.log('DOM loaded – script.js ready');
+    console.log('[script.js] DOM loaded');
 
     if (window.applicationCache) {
         window.applicationCache.addEventListener("progress", cacheProgress, false);
@@ -74,9 +92,9 @@ document.addEventListener("DOMContentLoaded", function() {
         if (defaultBtn) {
             defaultBtn.classList.add('active');
             selectedVersion = defaultBtn.dataset.version;
-            console.log('Default version set to:', selectedVersion);
+            console.log('[script.js] Default version set to:', selectedVersion);
         }
     }
 
-    console.log('script.js fully loaded. exploitChain =', exploitChain);
+    console.log('[script.js] Fully loaded. exploitChain =', exploitChain);
 });
