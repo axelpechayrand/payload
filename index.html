@@ -21,7 +21,6 @@
       <label for="lapse-exploit">Lapse</label>
     </form>
 
-    <!-- All firmware buttons from 6.00 to 11.02 -->
     <div id="version-buttons">
       <button class="jb-btn" data-version="6.00">PS4 - 6.00</button>
       <button class="jb-btn" data-version="6.20">PS4 - 6.20</button>
@@ -45,12 +44,11 @@
     <div class="media-box">
       <img src="includes/cat.jpg" alt="Monero > all">
     </div>
-
-    <pre id="console">Ready. Awaiting execution...
-  </pre>
+    <pre id="console">Ready. Awaiting execution...</pre>
   </div>
 
-  <script src="src/main.js"></script>
+  <!-- SCRIPT ORDER FIXED: script.js first, then main.js -->
   <script src="includes/script.js"></script>
+  <script src="src/main.js"></script>
 </body>
 </html>
