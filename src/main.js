@@ -1,10 +1,13 @@
-// Global error catcher – logs errors to console and alert
+// Global error handler
 window.onerror = function(msg, url, line, col, error) {
-    console.error('Global error:', msg, error);
-    alert('Error: ' + msg + '\nSee console for details.');
+    console.error('[main.js] Global error:', msg, error);
+    const consoleEl = document.getElementById('console');
+    if (consoleEl) {
+        consoleEl.append('\n[ERROR] ' + msg + '\n');
+    }
 };
 
-function load_script(src, remote = true, transfer = []) {
+function load_script(src) {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = src;
@@ -19,21 +22,23 @@ function setVersionFromString(versionStr) {
     if (parts.length !== 2) throw new Error('Invalid version format');
     version.major = parseInt(parts[0], 10);
     version.minor = parseInt(parts[1], 16);
-    version.console = 4;
+    version.console = 4; // PS4
 }
 
 async function doJb(versionStr) {
-    console.log('doJb called with version:', versionStr);
-
-    if (versionStr) {
-        setVersionFromString(versionStr);
-    } else {
-        version.init();
-    }
-
-    await load_script("src/misc.js");
+    console.log('[main.js] doJb called with version:', versionStr);
 
     try {
+        // Set version
+        if (versionStr) {
+            setVersionFromString(versionStr);
+        } else {
+            version.init();
+        }
+
+        // Load required scripts
+        await load_script("src/misc.js");
+
         switch (version.console) {
             case 4:
                 await load_script("src/ps4/constants.js");
@@ -71,8 +76,8 @@ async function doJb(versionStr) {
                 logger.info(`Unsupported console ${version.console}`);
         }
 
-        // exploitChain is now defined because script.js loaded first
-        console.log('Loading exploit chain:', exploitChain);
+        // exploitChain is defined from script.js
+        console.log('[main.js] Loading exploit chain:', exploitChain);
         await load_script(`src/${exploitChain}.js`);
 
         logger.info(`===${exploitChain.toUpperCase()}===`);
@@ -85,15 +90,11 @@ async function doJb(versionStr) {
                 leak_kaddrs();
                 double_free_reqs1();
                 make_karw();
-
                 inc_karw_pipe_refcnt();
-
                 logger.info("Corrupted context cleanup started...");
-
                 remove_pktinfo_from_so(pktopts_twins[0]);
                 remove_rthdr_from_so(pktopts_twins[1]);
                 remove_rthdr_from_so(rthdr_twins[0]);
-
                 logger.info("Corrupted context cleanup completed !!");
             } else {
                 init();
@@ -101,16 +102,12 @@ async function doJb(versionStr) {
                 await ucred_triple_free();
                 leak_kqueue();
                 await make_karw();
-
                 inc_karw_pipe_refcnt();
-
                 logger.info("Corrupted context cleanup started...");
-
                 for (let i = 0; i < triplets.length; i++) {
                     remove_rthdr_from_so(triplets[i]);
                 }
                 remove_uaf_file();
-
                 logger.info("Corrupted context cleanup completed !!");
             }
         } finally {
@@ -127,6 +124,7 @@ async function doJb(versionStr) {
             const kpatches_u8 = new Uint8Array(kpatches_buf);
             kernel_patches(kpatches_u8);
 
+            // --- Load payload based on selected version ---
             const major = version.major;
             const minor = version.minor.toString(16).padStart(2, '0');
             const payloadFile = `payload_${major}${minor}.bin`;
@@ -147,6 +145,7 @@ async function doJb(versionStr) {
     } catch (e) {
         logger.error(e.message);
         logger.error(e.stack);
-        alert('Jailbreak failed: ' + e.message + '\nCheck console for details.');
+        // Re-throw so the button can handle the error
+        throw e;
     }
 }
